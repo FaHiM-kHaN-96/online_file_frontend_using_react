@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Modal, Button, Form, Alert, Card } from "react-bootstrap";
 import { QRCodeCanvas } from "qrcode.react";
 import "./FileManager.css";
@@ -22,23 +22,23 @@ const FileManager = () => {
 
   const token = localStorage.getItem("jwt"); // ✅ keep consistent
 
-  useEffect(() => {
-    if (token) fetchFiles();
-  }, [token]);
-
-  // ✅ Fetch logged-in user's files
-  const fetchFiles = async () => {
+  // ✅ useCallback to fix eslint warning
+  const fetchFiles = useCallback(async () => {
+    if (!token) return;
     try {
       const response = await axios.get("/api/files", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setFiles(response.data || []);
     } catch (err) {
-
       console.error("Failed to fetch files:", err);
       console.error("check token   ", token);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchFiles();
+  }, [fetchFiles]);
 
   const formatSize = (bytes) => {
     if (bytes === 0) return "0 Bytes";
@@ -57,8 +57,7 @@ const FileManager = () => {
     if (!file) return;
 
     const allowedExtensions = [
-      "jpg", "png", "jpeg", "pdf", "docx",
-      "ppt", "pptx", "mp4", "mp3", "html",
+      "jpg", "png", "jpeg", "pdf", "docx", "ppt", "pptx", "mp4", "mp3", "html",
     ];
     const fileExtension = file.name.split(".").pop().toLowerCase();
     const maxSize = 200 * 1024 * 1024;
@@ -115,18 +114,81 @@ const FileManager = () => {
     }
   };
 
-  // ------------------- Share -------------------
-  const handleShare = (fileId) => {
+  const handleDownloade = async (fileId) => {
     const file = files.find((f) => f.id === fileId);
     if (!file) return;
 
     if (countdownInterval) clearInterval(countdownInterval);
 
     const link = `${axios.defaults.baseURL}/api/files/${fileId}/download`;
+   
+
+    try {
+      // API call to download
+      const response = await axios.get(link, {
+        responseType: "blob", // important for file download
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 200) {
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.fileName || "downloaded_file";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        // ✅ Success alert
+        alert("✅ File downloaded successfully!");
+      }
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("❌ Failed to download file.");
+    }
+
+    
+  };
+
+  // ------------------- Share (Download + Alert + Countdown) -------------------
+  const handleShare = async (fileId) => {
+    const file = files.find((f) => f.id === fileId);
+    if (!file) return;
+
+    if (countdownInterval) clearInterval(countdownInterval);
+
+    const link = `${axios.defaults.baseURL}/api/share/${fileId}/download`;
     setShareLink(link);
     setShowShareAlert(true);
     setCountdown(120);
 
+    try {
+      // API call to download
+      const response = await axios.get(link, {
+        responseType: "blob", // important for file download
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 200) {
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.fileName || "downloaded_file";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        // ✅ Success alert
+        alert("✅ File downloaded successfully!");
+      }
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("❌ Failed to download file.");
+    }
+
+    // Timer logic for sharing link
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -180,7 +242,9 @@ const FileManager = () => {
                 required
               />
             </Form.Group>
-            <Button variant="primary" type="submit">Upload</Button>
+            <Button variant="primary" type="submit">
+              Upload
+            </Button>
           </Form>
         </div>
 
@@ -258,9 +322,7 @@ const FileManager = () => {
                       variant="success"
                       size="sm"
                       className="action-btn"
-                      href={`${axios.defaults.baseURL}/api/files/${file.id}/download`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      onClick={() => handleDownloade(file.id)}
                     >
                       Download
                     </Button>
@@ -318,17 +380,28 @@ const FileManager = () => {
         </Button>
 
         {/* Modals */}
-        <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)}>
+        <Modal
+          show={showDetailsModal}
+          onHide={() => setShowDetailsModal(false)}
+        >
           <Modal.Header closeButton>
             <Modal.Title>File Details</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             {selectedFile && (
               <>
-                <p><strong>Name:</strong> {selectedFile.fileName}</p>
-                <p><strong>Size:</strong> {formatSize(selectedFile.fileSize)}</p>
-                <p><strong>Upload Date:</strong> {selectedFile.uploade_date}</p>
-                <p><strong>Downloads:</strong> {selectedFile.downloads}</p>
+                <p>
+                  <strong>Name:</strong> {selectedFile.fileName}
+                </p>
+                <p>
+                  <strong>Size:</strong> {formatSize(selectedFile.fileSize)}
+                </p>
+                <p>
+                  <strong>Upload Date:</strong> {selectedFile.uploade_date}
+                </p>
+                <p>
+                  <strong>Downloads:</strong> {selectedFile.downloads}
+                </p>
               </>
             )}
           </Modal.Body>
@@ -339,11 +412,19 @@ const FileManager = () => {
             <Modal.Title>Confirm Delete</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            Are you sure you want to delete <strong>{selectedFile?.fileName}</strong>?
+            Are you sure you want to delete{" "}
+            <strong>{selectedFile?.fileName}</strong>?
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
-            <Button variant="danger" onClick={handleDelete}>Delete</Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowDeleteModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDelete}>
+              Delete
+            </Button>
           </Modal.Footer>
         </Modal>
 
@@ -355,7 +436,9 @@ const FileManager = () => {
             {shareLink && <QRCodeCanvas value={shareLink} size={200} />}
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowQRModal(false)}>Close</Button>
+            <Button variant="secondary" onClick={() => setShowQRModal(false)}>
+              Close
+            </Button>
           </Modal.Footer>
         </Modal>
       </Card>
