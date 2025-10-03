@@ -7,10 +7,37 @@ import {
   Card,
   Tooltip,
   OverlayTrigger,
+  ProgressBar,
+  Badge,
 } from "react-bootstrap";
 import { QRCodeCanvas } from "qrcode.react";
+import {
+  FaUpload,
+  FaDownload,
+  FaTrash,
+  FaShare,
+  FaInfoCircle,
+  FaSignOutAlt,
+  FaSearch,
+  FaCopy,
+  FaQrcode,
+  FaFile,
+  FaFileImage,
+   FaHome,
+  FaFilePdf,
+  FaFileVideo,
+  FaFileAudio,
+  FaFileCode,
+  FaFileWord,
+  FaFilePowerpoint,
+  FaCloudUploadAlt,
+  FaFolderOpen,
+  FaClock,
+} from "react-icons/fa";
 import "./FileManager.css";
 import axios from "axios";
+import 'bootstrap/dist/css/bootstrap.min.css';
+
 
 axios.defaults.baseURL = "http://localhost:8080";
 
@@ -27,10 +54,46 @@ const FileManager = () => {
   const [showShareAlert, setShowShareAlert] = useState(false);
   const [shareDisabled, setShareDisabled] = useState(false);
   const [activeSharedFileId, setActiveSharedFileId] = useState(null);
-  const [copiedAlert, setCopiedAlert] = useState(false); // ✅ new state for copy alert
+  const [copiedAlert, setCopiedAlert] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const countdownInterval = useRef(null);
   const token = localStorage.getItem("jwt");
+
+  // Get file icon based on extension
+  const getFileIcon = (fileName) => {
+    const extension = fileName.split('.').pop().toLowerCase();
+    const iconProps = { size: 20, className: "file-icon" };
+    
+    switch(extension) {
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return <FaFileImage {...iconProps} style={{ color: '#e74c3c' }} />;
+      case 'pdf':
+        return <FaFilePdf {...iconProps} style={{ color: '#e74c3c' }} />;
+      case 'mp4':
+      case 'avi':
+      case 'mov':
+        return <FaFileVideo {...iconProps} style={{ color: '#9b59b6' }} />;
+      case 'mp3':
+      case 'wav':
+        return <FaFileAudio {...iconProps} style={{ color: '#3498db' }} />;
+      case 'html':
+      case 'css':
+      case 'js':
+        return <FaFileCode {...iconProps} style={{ color: '#e67e22' }} />;
+      case 'docx':
+      case 'doc':
+        return <FaFileWord {...iconProps} style={{ color: '#2980b9' }} />;
+      case 'ppt':
+      case 'pptx':
+        return <FaFilePowerpoint {...iconProps} style={{ color: '#e74c3c' }} />;
+      default:
+        return <FaFile {...iconProps} style={{ color: '#95a5a6' }} />;
+    }
+  };
 
   // ------------------- Fetch -------------------
   const fetchFiles = useCallback(async () => {
@@ -55,6 +118,16 @@ const FileManager = () => {
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const totalSize = files.reduce((total, file) => total + file.fileSize, 0);
@@ -97,11 +170,20 @@ const FileManager = () => {
     const formData = new FormData();
     formData.append("file", file);
 
+    setIsUploading(true);
+    setUploadProgress(0);
+
     try {
       const response = await axios.post("/api/cs/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setUploadProgress(percentCompleted);
         },
       });
 
@@ -109,10 +191,16 @@ const FileManager = () => {
       setFiles([...files, uploadedFile]);
       setUploadSuccess(true);
       e.target.reset();
-      setTimeout(() => setUploadSuccess(false), 5000);
+      setTimeout(() => {
+        setUploadSuccess(false);
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 5000);
     } catch (error) {
       console.error("Upload error:", error);
       alert("Upload failed: " + (error.response?.data || error.message));
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -218,7 +306,7 @@ const FileManager = () => {
       .writeText(text)
       .then(() => {
         setCopiedAlert(true);
-        setTimeout(() => setCopiedAlert(false), 3000); // auto hide after 3s
+        setTimeout(() => setCopiedAlert(false), 3000);
       })
       .catch((err) => console.error("Failed to copy: ", err));
   };
@@ -229,143 +317,241 @@ const FileManager = () => {
 
   return (
     <div className="file-manager-container">
-      <Card className="file-manager-card">
-        <h2>Welcome, User!</h2>
-        <p>You are now logged in.</p>
+      <div className="background-animation">
+        <div className="floating-shapes">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+        </div>
+      </div>
+
+      <Card className="file-manager-card glass-effect">
+        {/* Header Section */}
+        <div className="header-section">
+          <div className="welcome-section">
+            <h2>Welcome back! 👋</h2>
+            <p>Manage your files securely in one place</p>
+          </div>
+          <div className="stats-section">
+            <div className="stat-item">
+              <FaFolderOpen className="stat-icon" />
+              <div>
+                <span className="stat-number">{files.length}</span>
+                <span className="stat-label">Total Files</span>
+              </div>
+            </div>
+            <div className="stat-item">
+              <FaCloudUploadAlt className="stat-icon" />
+              <div>
+                <span className="stat-number">{formatSize(totalSize)}</span>
+                <span className="stat-label">Storage Used</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Upload Section */}
-        <div className="upload-section">
-          <h4>Upload a File</h4>
+        <div className="upload-section card-section">
+          <div className="section-header">
+            <FaUpload className="section-icon" />
+            <h4>Upload New File</h4>
+          </div>
+          
           {uploadSuccess && (
             <Alert
               variant="success"
               onClose={() => setUploadSuccess(false)}
               dismissible
+              className="success-alert"
             >
-              File uploaded successfully!
+              <div className="alert-content">
+                <FaCloudUploadAlt />
+                <span>File uploaded successfully!</span>
+              </div>
             </Alert>
           )}
 
-          <Form onSubmit={handleUpload}>
-            <Form.Group className="mb-3">
-              <Form.Label>Choose a file</Form.Label>
+          <Form onSubmit={handleUpload} className="upload-form">
+            <div className="file-upload-area">
+              <FaCloudUploadAlt className="upload-icon" />
+              <div className="upload-text">
+                <p>Drag & drop your files here or click to browse</p>
+                <small>Supports: JPG, PNG, PDF, DOCX, PPT, MP4, MP3, HTML</small>
+                <small>Max size: 200MB (100MB for videos)</small>
+              </div>
               <Form.Control
                 type="file"
                 name="data"
                 accept=".jpg,.png,.jpeg,.pdf,.docx,.ppt,.pptx,.mp3,.mp4,.html"
                 required
+                className="file-input"
               />
-            </Form.Group>
-            <Button variant="primary" type="submit">Upload</Button>
-          </Form>
-        </div>
+            </div>
 
-        <div className="total-size-section">
-          <h4>Total Uploaded Size: {formatSize(totalSize)}</h4>
+            {isUploading && (
+              <div className="upload-progress">
+                <ProgressBar 
+                  now={uploadProgress} 
+                  label={`${uploadProgress}%`}
+                  variant="primary"
+                  animated
+                />
+                <small>Uploading... {uploadProgress}%</small>
+              </div>
+            )}
+
+            <Button 
+              variant="primary" 
+              type="submit" 
+              className="upload-btn"
+              disabled={isUploading}
+            >
+              <FaUpload className="btn-icon" />
+              {isUploading ? 'Uploading...' : 'Upload File'}
+            </Button>
+          </Form>
         </div>
 
         {/* Share Alert */}
         {showShareAlert && (
           <Alert
             variant={countdown > 0 ? "success" : "danger"}
-            className="share-alert"
+            className="share-alert glass-effect"
           >
-            <Alert.Heading>
-              {countdown > 0 ? "File shared successfully!" : "Link expired!"}
-            </Alert.Heading>
-            {countdown > 0 ? (
-              <>
-                <a href={shareLink} target="_blank" rel="noopener noreferrer">
-                  {shareLink}
-                </a>
-                <div className="countdown">
-                  <span>{countdown}</span> seconds remaining.
-                </div>
-                <div className="share-buttons">
-                  <OverlayTrigger placement="top" overlay={<Tooltip>Copy share link</Tooltip>}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="me-2"
-                      onClick={() => copyToClipboard(shareLink)}
-                    >
-                      Copy Link
-                    </Button>
-                  </OverlayTrigger>
+            <div className="share-alert-content">
+              <div className="share-header">
+                <Alert.Heading>
+                  {countdown > 0 ? "🚀 File Shared Successfully!" : "⏰ Link Expired!"}
+                </Alert.Heading>
+                <Badge 
+                  bg={countdown > 0 ? "success" : "danger"} 
+                  className="countdown-badge"
+                >
+                  <FaClock className="me-1" />
+                  {countdown}s
+                </Badge>
+              </div>
+              
+              {countdown > 0 ? (
+                <>
+                  <div className="share-link-container">
+                    <code className="share-link">{shareLink}</code>
+                  </div>
+                  <div className="share-buttons">
+                    <OverlayTrigger placement="top" overlay={<Tooltip>Copy share link</Tooltip>}>
+                      <Button
+                        variant="outline-secondary"
+                        size="sm"
+                        className="share-btn"
+                        onClick={() => copyToClipboard(shareLink)}
+                      >
+                        <FaCopy className="btn-icon" />
+                        Copy Link
+                      </Button>
+                    </OverlayTrigger>
 
-                  <OverlayTrigger placement="top" overlay={<Tooltip>Generate QR Code</Tooltip>}>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => setShowQRModal(true)}
-                    >
-                      Generate QR Code
-                    </Button>
-                  </OverlayTrigger>
-                </div>
-              </>
-            ) : (
-              <p>Please click on the share button to create a new link.</p>
-            )}
+                    <OverlayTrigger placement="top" overlay={<Tooltip>Generate QR Code</Tooltip>}>
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        className="share-btn"
+                        onClick={() => setShowQRModal(true)}
+                      >
+                        <FaQrcode className="btn-icon" />
+                        QR Code
+                      </Button>
+                    </OverlayTrigger>
+                  </div>
+                </>
+              ) : (
+                <p className="expired-text">Please click on the share button to create a new link.</p>
+              )}
+            </div>
           </Alert>
         )}
 
         {/* Copied Alert */}
         {copiedAlert && (
-          <Alert variant="info" className="mt-2">
+          <Alert variant="info" className="copied-alert glass-effect">
+            <FaCopy className="me-2" />
             ✅ Link copied to clipboard!
           </Alert>
         )}
 
         {/* File List Section */}
-        <div className="file-list-section">
-          <h4>Your Files:</h4>
-          <Form.Group className="search-bar">
+        <div className="file-list-section card-section">
+          <div className="section-header">
+            <FaFolderOpen className="section-icon" />
+            <h4>Your Files</h4>
+            <Badge bg="primary" className="file-count-badge">
+              {filteredFiles.length} files
+            </Badge>
+          </div>
+
+          <div className="search-container">
+            <FaSearch className="search-icon" />
             <Form.Control
               type="text"
               placeholder="Search files..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
             />
-          </Form.Group>
+          </div>
 
           <div className="file-items">
             {filteredFiles.length > 0 ? (
               filteredFiles.map((file) => (
-                <div key={file.id} className="file-item">
-                  <div className="file-info">
-                    <p className="file-name">
-                      {file.fileName} ({formatSize(file.fileSize)})
-                    </p>
-                    <small className="upload-date">
-                      Uploaded: {file.uploade_date}
-                    </small>
+                <div 
+                  key={file.id} 
+                  className={`file-item glass-effect ${activeSharedFileId === file.id ? 'sharing-active' : ''}`}
+                >
+                  <div className="file-main-info">
+                    <div className="file-icon-type">
+                      {getFileIcon(file.fileName)}
+                    </div>
+                    <div className="file-details">
+                      <h6 className="file-name">{file.fileName}</h6>
+                      <div className="file-meta">
+                        <span className="file-size">{formatSize(file.fileSize)}</span>
+                        <span className="file-date">
+                          <FaClock className="me-1" />
+                          {formatDate(file.uploade_date)}
+                        </span>
+                        {file.downloads > 0 && (
+                          <span className="file-downloads">
+                            {file.downloads} downloads
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
+                  
                   <div className="file-actions">
                     <OverlayTrigger placement="top" overlay={<Tooltip>Download file</Tooltip>}>
                       <Button
-                        variant="success"
+                        variant="outline-success"
                         size="sm"
-                        className="action-btn"
+                        className="btn-icon"
                         onClick={() => handleDownload(file.id)}
                       >
-                        Download
+                        <FaDownload className="btn-icon" />
                       </Button>
                     </OverlayTrigger>
 
                     <OverlayTrigger placement="top" overlay={<Tooltip>{activeSharedFileId === file.id ? "Cannot delete while shared" : "Delete file"}</Tooltip>}>
                       <span>
                         <Button
-                          variant={activeSharedFileId === file.id ? "secondary" : "danger"}
+                          variant={activeSharedFileId === file.id ? "outline-secondary" : "outline-danger"}
                           size="sm"
-                          className="action-btn"
+                          className="btn-icon"
                           onClick={() => {
                             setSelectedFile(file);
                             setShowDeleteModal(true);
                           }}
                           disabled={activeSharedFileId === file.id}
                         >
-                          Delete
+                          <FaTrash  />
                         </Button>
                       </span>
                     </OverlayTrigger>
@@ -373,101 +559,140 @@ const FileManager = () => {
                     <OverlayTrigger placement="top" overlay={<Tooltip>Share file</Tooltip>}>
                       <span>
                         <Button
-                          variant="info"
+                          variant={activeSharedFileId === file.id ? "primary" : "outline-info"}
                           size="sm"
-                          className="action-btn"
+                          className="btn-icon"
                           onClick={() => handleShare(file.id)}
-                          disabled={shareDisabled}
+                          disabled={shareDisabled && activeSharedFileId !== file.id}
                         >
-                          Share
+                          <FaShare className="btn-icon" />
                         </Button>
                       </span>
                     </OverlayTrigger>
 
                     <OverlayTrigger placement="top" overlay={<Tooltip>File details</Tooltip>}>
                       <Button
-                        variant="primary"
+                        variant="outline-primary"
                         size="sm"
-                        className="action-btn"
+                        className="btn-icon"
                         onClick={() => {
                           setSelectedFile(file);
                           setShowDetailsModal(true);
                         }}
                       >
-                        Details
+                        <FaInfoCircle className="btn-icon" />
                       </Button>
                     </OverlayTrigger>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="no-files">
-                <p>No files uploaded yet. Upload your first file above.</p>
+              <div className="no-files glass-effect">
+                <FaFolderOpen className="no-files-icon" />
+                <p>No files found</p>
+                <small>
+                  {searchTerm ? 'Try adjusting your search terms' : 'Upload your first file to get started'}
+                </small>
               </div>
             )}
           </div>
         </div>
 
         {/* Logout */}
-        <OverlayTrigger placement="top" overlay={<Tooltip>Logout from your account</Tooltip>}>
-          <Button
-            variant="danger"
-            className="logout-btn"
-            onClick={() => {
-              localStorage.removeItem("jwt");
-              window.location.href = "/login";
-            }}
-          >
-            Logout
-          </Button>
-        </OverlayTrigger>
+        <div className="logout-section">
+          <OverlayTrigger placement="top" overlay={<Tooltip>Logout from your account</Tooltip>}>
+            <Button
+              variant="outline-danger"
+              className="logout-btn"
+              onClick={() => {
+                localStorage.removeItem("jwt");
+                window.location.href = "/login";
+              }}
+            >
+              <FaSignOutAlt className="btn-icon" />
+              Logout
+            </Button>
+          </OverlayTrigger>
+        </div>
 
         {/* Modals */}
-        <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>File Details</Modal.Title>
+        <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} centered className="custom-modal">
+          <Modal.Header closeButton className="modal-header">
+            <Modal.Title>
+              <FaInfoCircle className="me-2" />
+              File Details
+            </Modal.Title>
           </Modal.Header>
-          <Modal.Body>
+          <Modal.Body className="modal-body">
             {selectedFile && (
-              <>
-                <p><strong>Name:</strong> {selectedFile.fileName}</p>
-                <p><strong>Size:</strong> {formatSize(selectedFile.fileSize)}</p>
-                <p><strong>Upload Date:</strong> {selectedFile.uploade_date}</p>
-                <p><strong>Downloads:</strong> {selectedFile.downloads}</p>
-              </>
+              <div className="file-details-content">
+                <div className="detail-row">
+                  <span className="detail-label">Name:</span>
+                  <span className="detail-value">{selectedFile.fileName}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Size:</span>
+                  <span className="detail-value">{formatSize(selectedFile.fileSize)}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Upload Date:</span>
+                  <span className="detail-value">{formatDate(selectedFile.uploade_date)}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Downloads:</span>
+                  <span className="detail-value">
+                    <Badge bg="info">{selectedFile.downloads}</Badge>
+                  </span>
+                </div>
+              </div>
             )}
           </Modal.Body>
         </Modal>
 
-        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>Confirm Delete</Modal.Title>
+        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered className="custom-modal">
+          <Modal.Header closeButton className="modal-header">
+            <Modal.Title>
+              <FaTrash className="me-2" />
+              Confirm Delete
+            </Modal.Title>
           </Modal.Header>
-          <Modal.Body>
-            Are you sure you want to delete{" "}
-            <strong>{selectedFile?.fileName}</strong>?
+          <Modal.Body className="modal-body">
+            <div className="delete-confirmation">
+              <div className="delete-icon">
+                <FaTrash />
+              </div>
+              <p>Are you sure you want to delete <strong>"{selectedFile?.fileName}"</strong>?</p>
+              <small className="text-muted">This action cannot be undone.</small>
+            </div>
           </Modal.Body>
-          <Modal.Footer>
+          <Modal.Footer className="modal-footer">
             <Button
-              variant="secondary"
+              variant="outline-secondary"
               onClick={() => setShowDeleteModal(false)}
             >
               Cancel
             </Button>
             <Button variant="danger" onClick={handleDelete}>
+              <FaTrash className="me-1" />
               Delete
             </Button>
           </Modal.Footer>
         </Modal>
 
-        <Modal show={showQRModal} onHide={() => setShowQRModal(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>QR Code for {selectedFile?.fileName}</Modal.Title>
+        <Modal show={showQRModal} onHide={() => setShowQRModal(false)} centered className="custom-modal">
+          <Modal.Header closeButton className="modal-header">
+            <Modal.Title>
+              <FaQrcode className="me-2" />
+              QR Code
+            </Modal.Title>
           </Modal.Header>
-          <Modal.Body className="qr-code-container">
-            {shareLink && <QRCodeCanvas value={shareLink} size={200} />}
+          <Modal.Body className="modal-body qr-code-container">
+            <div className="qr-content">
+              <p className="qr-description">Scan to download <strong>{selectedFile?.fileName}</strong></p>
+              {shareLink && <QRCodeCanvas value={shareLink} size={200} />}
+            </div>
           </Modal.Body>
-          <Modal.Footer>
+          <Modal.Footer className="modal-footer">
             <Button variant="secondary" onClick={() => setShowQRModal(false)}>
               Close
             </Button>
