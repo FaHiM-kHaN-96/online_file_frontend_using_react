@@ -1,10 +1,17 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Modal, Button, Form, Alert, Card } from "react-bootstrap";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import {
+  Modal,
+  Button,
+  Form,
+  Alert,
+  Card,
+  Tooltip,
+  OverlayTrigger,
+} from "react-bootstrap";
 import { QRCodeCanvas } from "qrcode.react";
 import "./FileManager.css";
 import axios from "axios";
 
-// ✅ Set base URL
 axios.defaults.baseURL = "http://localhost:8080";
 
 const FileManager = () => {
@@ -18,11 +25,14 @@ const FileManager = () => {
   const [shareLink, setShareLink] = useState("");
   const [countdown, setCountdown] = useState(120);
   const [showShareAlert, setShowShareAlert] = useState(false);
-  const [countdownInterval, setCountdownInterval] = useState(null);
+  const [shareDisabled, setShareDisabled] = useState(false);
+  const [activeSharedFileId, setActiveSharedFileId] = useState(null);
+  const [copiedAlert, setCopiedAlert] = useState(false); // ✅ new state for copy alert
 
-  const token = localStorage.getItem("jwt"); // ✅ keep consistent
+  const countdownInterval = useRef(null);
+  const token = localStorage.getItem("jwt");
 
-  // ✅ useCallback to fix eslint warning
+  // ------------------- Fetch -------------------
   const fetchFiles = useCallback(async () => {
     if (!token) return;
     try {
@@ -32,7 +42,6 @@ const FileManager = () => {
       setFiles(response.data || []);
     } catch (err) {
       console.error("Failed to fetch files:", err);
-      console.error("check token   ", token);
     }
   }, [token]);
 
@@ -57,7 +66,16 @@ const FileManager = () => {
     if (!file) return;
 
     const allowedExtensions = [
-      "jpg", "png", "jpeg", "pdf", "docx", "ppt", "pptx", "mp4", "mp3", "html",
+      "jpg",
+      "png",
+      "jpeg",
+      "pdf",
+      "docx",
+      "ppt",
+      "pptx",
+      "mp4",
+      "mp3",
+      "html",
     ];
     const fileExtension = file.name.split(".").pop().toLowerCase();
     const maxSize = 200 * 1024 * 1024;
@@ -114,24 +132,20 @@ const FileManager = () => {
     }
   };
 
-  const handleDownloade = async (fileId) => {
+  // ------------------- Download -------------------
+  const handleDownload = async (fileId) => {
     const file = files.find((f) => f.id === fileId);
     if (!file) return;
 
-    if (countdownInterval) clearInterval(countdownInterval);
-
     const link = `${axios.defaults.baseURL}/api/files/${fileId}/download`;
-   
 
     try {
-      // API call to download
       const response = await axios.get(link, {
-        responseType: "blob", // important for file download
+        responseType: "blob",
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.status === 200) {
-        // Create download link
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const a = document.createElement("a");
         a.href = url;
@@ -139,73 +153,73 @@ const FileManager = () => {
         document.body.appendChild(a);
         a.click();
         a.remove();
-
-        // ✅ Success alert
-        alert("✅ File downloaded successfully!");
       }
     } catch (error) {
       console.error("Download failed:", error);
       alert("❌ Failed to download file.");
     }
-
-    
   };
 
-  // ------------------- Share (Download + Alert + Countdown) -------------------
+  // ------------------- Share -------------------
   const handleShare = async (fileId) => {
     const file = files.find((f) => f.id === fileId);
     if (!file) return;
 
-    if (countdownInterval) clearInterval(countdownInterval);
+    if (countdownInterval.current) clearInterval(countdownInterval.current);
 
-    const link = `${axios.defaults.baseURL}/api/share/${fileId}/download`;
-    setShareLink(link);
+    setShareDisabled(true);
+    setActiveSharedFileId(fileId);
     setShowShareAlert(true);
     setCountdown(120);
 
     try {
-      // API call to download
-      const response = await axios.get(link, {
-        responseType: "blob", // important for file download
+      await axios.post(`/api/start/${fileId}`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.status === 200) {
-        // Create download link
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.fileName || "downloaded_file";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+      const response = await axios.get(
+        `${axios.defaults.baseURL}/api/share/${fileId}/download`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-        // ✅ Success alert
-        alert("✅ File downloaded successfully!");
+      if (response.status === 200) {
+        setShareLink(response.data);
       }
     } catch (error) {
-      console.error("Download failed:", error);
-      alert("❌ Failed to download file.");
+      console.error("Share failed:", error);
+      alert("❌ Failed to share file.");
+      setShareDisabled(false);
+      setActiveSharedFileId(null);
+      return;
     }
 
-    // Timer logic for sharing link
-    const timer = setInterval(() => {
+    countdownInterval.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          clearInterval(timer);
+          clearInterval(countdownInterval.current);
+          setCountdown(0);
+
+          axios.post(`/api/stop/${fileId}`, {}, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch((error) => console.error("Failed to call /stop:", error));
+
+          setShareDisabled(false);
+          setActiveSharedFileId(null);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-
-    setCountdownInterval(timer);
   };
 
+  // ------------------- Copy -------------------
   const copyToClipboard = (text) => {
     navigator.clipboard
       .writeText(text)
-      .then(() => alert("Link copied to clipboard!"))
+      .then(() => {
+        setCopiedAlert(true);
+        setTimeout(() => setCopiedAlert(false), 3000); // auto hide after 3s
+      })
       .catch((err) => console.error("Failed to copy: ", err));
   };
 
@@ -242,9 +256,7 @@ const FileManager = () => {
                 required
               />
             </Form.Group>
-            <Button variant="primary" type="submit">
-              Upload
-            </Button>
+            <Button variant="primary" type="submit">Upload</Button>
           </Form>
         </div>
 
@@ -270,26 +282,38 @@ const FileManager = () => {
                   <span>{countdown}</span> seconds remaining.
                 </div>
                 <div className="share-buttons">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="me-2"
-                    onClick={() => copyToClipboard(shareLink)}
-                  >
-                    Copy Link
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => setShowQRModal(true)}
-                  >
-                    Generate QR Code
-                  </Button>
+                  <OverlayTrigger placement="top" overlay={<Tooltip>Copy share link</Tooltip>}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="me-2"
+                      onClick={() => copyToClipboard(shareLink)}
+                    >
+                      Copy Link
+                    </Button>
+                  </OverlayTrigger>
+
+                  <OverlayTrigger placement="top" overlay={<Tooltip>Generate QR Code</Tooltip>}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setShowQRModal(true)}
+                    >
+                      Generate QR Code
+                    </Button>
+                  </OverlayTrigger>
                 </div>
               </>
             ) : (
               <p>Please click on the share button to create a new link.</p>
             )}
+          </Alert>
+        )}
+
+        {/* Copied Alert */}
+        {copiedAlert && (
+          <Alert variant="info" className="mt-2">
+            ✅ Link copied to clipboard!
           </Alert>
         )}
 
@@ -318,44 +342,61 @@ const FileManager = () => {
                     </small>
                   </div>
                   <div className="file-actions">
-                    <Button
-                      variant="success"
-                      size="sm"
-                      className="action-btn"
-                      onClick={() => handleDownloade(file.id)}
-                    >
-                      Download
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      className="action-btn"
-                      onClick={() => {
-                        setSelectedFile(file);
-                        setShowDeleteModal(true);
-                      }}
-                    >
-                      Delete
-                    </Button>
-                    <Button
-                      variant="info"
-                      size="sm"
-                      className="action-btn"
-                      onClick={() => handleShare(file.id)}
-                    >
-                      Share
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="action-btn"
-                      onClick={() => {
-                        setSelectedFile(file);
-                        setShowDetailsModal(true);
-                      }}
-                    >
-                      Details
-                    </Button>
+                    <OverlayTrigger placement="top" overlay={<Tooltip>Download file</Tooltip>}>
+                      <Button
+                        variant="success"
+                        size="sm"
+                        className="action-btn"
+                        onClick={() => handleDownload(file.id)}
+                      >
+                        Download
+                      </Button>
+                    </OverlayTrigger>
+
+                    <OverlayTrigger placement="top" overlay={<Tooltip>{activeSharedFileId === file.id ? "Cannot delete while shared" : "Delete file"}</Tooltip>}>
+                      <span>
+                        <Button
+                          variant={activeSharedFileId === file.id ? "secondary" : "danger"}
+                          size="sm"
+                          className="action-btn"
+                          onClick={() => {
+                            setSelectedFile(file);
+                            setShowDeleteModal(true);
+                          }}
+                          disabled={activeSharedFileId === file.id}
+                        >
+                          Delete
+                        </Button>
+                      </span>
+                    </OverlayTrigger>
+
+                    <OverlayTrigger placement="top" overlay={<Tooltip>Share file</Tooltip>}>
+                      <span>
+                        <Button
+                          variant="info"
+                          size="sm"
+                          className="action-btn"
+                          onClick={() => handleShare(file.id)}
+                          disabled={shareDisabled}
+                        >
+                          Share
+                        </Button>
+                      </span>
+                    </OverlayTrigger>
+
+                    <OverlayTrigger placement="top" overlay={<Tooltip>File details</Tooltip>}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="action-btn"
+                        onClick={() => {
+                          setSelectedFile(file);
+                          setShowDetailsModal(true);
+                        }}
+                      >
+                        Details
+                      </Button>
+                    </OverlayTrigger>
                   </div>
                 </div>
               ))
@@ -368,40 +409,31 @@ const FileManager = () => {
         </div>
 
         {/* Logout */}
-        <Button
-          variant="danger"
-          className="logout-btn"
-          onClick={() => {
-            localStorage.removeItem("jwt");
-            window.location.href = "/login";
-          }}
-        >
-          Logout
-        </Button>
+        <OverlayTrigger placement="top" overlay={<Tooltip>Logout from your account</Tooltip>}>
+          <Button
+            variant="danger"
+            className="logout-btn"
+            onClick={() => {
+              localStorage.removeItem("jwt");
+              window.location.href = "/login";
+            }}
+          >
+            Logout
+          </Button>
+        </OverlayTrigger>
 
         {/* Modals */}
-        <Modal
-          show={showDetailsModal}
-          onHide={() => setShowDetailsModal(false)}
-        >
+        <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)}>
           <Modal.Header closeButton>
             <Modal.Title>File Details</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             {selectedFile && (
               <>
-                <p>
-                  <strong>Name:</strong> {selectedFile.fileName}
-                </p>
-                <p>
-                  <strong>Size:</strong> {formatSize(selectedFile.fileSize)}
-                </p>
-                <p>
-                  <strong>Upload Date:</strong> {selectedFile.uploade_date}
-                </p>
-                <p>
-                  <strong>Downloads:</strong> {selectedFile.downloads}
-                </p>
+                <p><strong>Name:</strong> {selectedFile.fileName}</p>
+                <p><strong>Size:</strong> {formatSize(selectedFile.fileSize)}</p>
+                <p><strong>Upload Date:</strong> {selectedFile.uploade_date}</p>
+                <p><strong>Downloads:</strong> {selectedFile.downloads}</p>
               </>
             )}
           </Modal.Body>
