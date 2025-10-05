@@ -604,12 +604,12 @@ const FileManager = () => {
             <Button
               variant="outline-danger"
               className="logout-btn"
-              onClick={() => {
+              onClick={() => { 
                 localStorage.removeItem("jwt");
                 window.location.href = "/login";
               }}
             >
-              <FaSignOutAlt className="btn-icon" />
+              <FaSignOutAlt className="btn-icon" /> 
               Logout
             </Button>
           </OverlayTrigger>

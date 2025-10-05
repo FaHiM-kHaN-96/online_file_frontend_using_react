@@ -25,7 +25,7 @@ const ProtectedRoute = ({ children }) => {
           Authorization: `Bearer ${token}`,
         },
       })
-      .then((res) => {
+      .then((res) => { 
         if (res.status === 200 && res.data.username) {
           setIsAuthenticated(true);
           console.log("Session valid:", res.data.username);

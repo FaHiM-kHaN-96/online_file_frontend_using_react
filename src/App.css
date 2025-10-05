@@ -619,12 +619,12 @@
     font-size: 2rem;
   }
 
-  .cta-content {
+  .cta-content { 
     padding: 40px 20px;
   }
 
   .cta-buttons {
-    flex-direction: column;
+    flex-direction: column; 
     align-items: center;
   }
 

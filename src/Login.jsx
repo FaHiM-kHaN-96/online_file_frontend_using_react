@@ -17,7 +17,7 @@ import {
 import "./Login.css";
 
 // ✅ Set base URL for your JWT backend
-axios.defaults.baseURL = "http://localhost:8080";
+axios.defaults.baseURL = "http://localhost:8080"; 
 
 const Login = () => {
   const [username, setUsername] = useState(""); 

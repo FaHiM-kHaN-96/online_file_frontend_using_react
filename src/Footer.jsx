@@ -262,7 +262,7 @@ const Footer = () => {
           ></path>
         </svg>
       </div>
-    </footer>
+    </footer> 
   );
 };
 

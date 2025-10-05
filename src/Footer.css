@@ -534,7 +534,7 @@
   .social-link,
   .newsletter-btn,
   .footer-brand,
-  .heart-icon {
+  .heart-icon { 
     animation: none;
     transition: none;
   }
