@@ -20,7 +20,7 @@ const ProtectedRoute = ({ children }) => {
 
     // ✅ Send GET request with token in headers (Authorization Bearer)
     axios
-      .get("http://localhost:8080/api/me", {
+      .get("http://192.168.1.183:8080/api/me", {
         headers: {
           Authorization: `Bearer ${token}`,
         },

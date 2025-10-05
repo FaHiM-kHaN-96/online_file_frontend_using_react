@@ -23,7 +23,7 @@ import {
   FaQrcode,
   FaFile,
   FaFileImage,
-   FaHome,
+  FaHome,
   FaFilePdf,
   FaFileVideo,
   FaFileAudio,
@@ -36,10 +36,9 @@ import {
 } from "react-icons/fa";
 import "./FileManager.css";
 import axios from "axios";
-import 'bootstrap/dist/css/bootstrap.min.css';
+import "bootstrap/dist/css/bootstrap.min.css";
 
-
-axios.defaults.baseURL = "http://localhost:8080";
+axios.defaults.baseURL = "http://192.168.1.183:8080";
 
 const FileManager = () => {
   const [files, setFiles] = useState([]);
@@ -63,35 +62,35 @@ const FileManager = () => {
 
   // Get file icon based on extension
   const getFileIcon = (fileName) => {
-    const extension = fileName.split('.').pop().toLowerCase();
+    const extension = fileName.split(".").pop().toLowerCase();
     const iconProps = { size: 20, className: "file-icon" };
-    
-    switch(extension) {
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-        return <FaFileImage {...iconProps} style={{ color: '#e74c3c' }} />;
-      case 'pdf':
-        return <FaFilePdf {...iconProps} style={{ color: '#e74c3c' }} />;
-      case 'mp4':
-      case 'avi':
-      case 'mov':
-        return <FaFileVideo {...iconProps} style={{ color: '#9b59b6' }} />;
-      case 'mp3':
-      case 'wav':
-        return <FaFileAudio {...iconProps} style={{ color: '#3498db' }} />;
-      case 'html':
-      case 'css':
-      case 'js':
-        return <FaFileCode {...iconProps} style={{ color: '#e67e22' }} />;
-      case 'docx':
-      case 'doc':
-        return <FaFileWord {...iconProps} style={{ color: '#2980b9' }} />;
-      case 'ppt':
-      case 'pptx':
-        return <FaFilePowerpoint {...iconProps} style={{ color: '#e74c3c' }} />;
+
+    switch (extension) {
+      case "jpg":
+      case "jpeg":
+      case "png":
+        return <FaFileImage {...iconProps} style={{ color: "#e74c3c" }} />;
+      case "pdf":
+        return <FaFilePdf {...iconProps} style={{ color: "#e74c3c" }} />;
+      case "mp4":
+      case "avi":
+      case "mov":
+        return <FaFileVideo {...iconProps} style={{ color: "#9b59b6" }} />;
+      case "mp3":
+      case "wav":
+        return <FaFileAudio {...iconProps} style={{ color: "#3498db" }} />;
+      case "html":
+      case "css":
+      case "js":
+        return <FaFileCode {...iconProps} style={{ color: "#e67e22" }} />;
+      case "docx":
+      case "doc":
+        return <FaFileWord {...iconProps} style={{ color: "#2980b9" }} />;
+      case "ppt":
+      case "pptx":
+        return <FaFilePowerpoint {...iconProps} style={{ color: "#e74c3c" }} />;
       default:
-        return <FaFile {...iconProps} style={{ color: '#95a5a6' }} />;
+        return <FaFile {...iconProps} style={{ color: "#95a5a6" }} />;
     }
   };
 
@@ -121,12 +120,12 @@ const FileManager = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -261,9 +260,13 @@ const FileManager = () => {
     setCountdown(120);
 
     try {
-      await axios.post(`/api/start/${fileId}`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        `/api/start/${fileId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       const response = await axios.get(
         `${axios.defaults.baseURL}/api/share/${fileId}/download`,
@@ -280,6 +283,14 @@ const FileManager = () => {
       setActiveSharedFileId(null);
       return;
     }
+    // const response_check = await  axios
+    //       .get(
+    //         `/share_file/stop/timer`,
+    //         {},
+    //         {
+
+    //         }
+    //       )
 
     countdownInterval.current = setInterval(() => {
       setCountdown((prev) => {
@@ -287,14 +298,23 @@ const FileManager = () => {
           clearInterval(countdownInterval.current);
           setCountdown(0);
 
-          axios.post(`/api/stop/${fileId}`, {}, {
-            headers: { Authorization: `Bearer ${token}` },
-          }).catch((error) => console.error("Failed to call /stop:", error));
+          axios
+            .post(
+              `/api/stop/${fileId}`,
+              {},
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            )
+            .catch((error) => console.error("Failed to call /stop:", error));
 
           setShareDisabled(false);
           setActiveSharedFileId(null);
           return 0;
         }
+        // if (response_check) {
+        //   setCountdown(0);
+        // }
         return prev - 1;
       });
     }, 1000);
@@ -356,7 +376,7 @@ const FileManager = () => {
             <FaUpload className="section-icon" />
             <h4>Upload New File</h4>
           </div>
-          
+
           {uploadSuccess && (
             <Alert
               variant="success"
@@ -376,7 +396,9 @@ const FileManager = () => {
               <FaCloudUploadAlt className="upload-icon" />
               <div className="upload-text">
                 <p>Drag & drop your files here or click to browse</p>
-                <small>Supports: JPG, PNG, PDF, DOCX, PPT, MP4, MP3, HTML</small>
+                <small>
+                  Supports: JPG, PNG, PDF, DOCX, PPT, MP4, MP3, HTML
+                </small>
                 <small>Max size: 200MB (100MB for videos)</small>
               </div>
               <Form.Control
@@ -390,8 +412,8 @@ const FileManager = () => {
 
             {isUploading && (
               <div className="upload-progress">
-                <ProgressBar 
-                  now={uploadProgress} 
+                <ProgressBar
+                  now={uploadProgress}
                   label={`${uploadProgress}%`}
                   variant="primary"
                   animated
@@ -400,14 +422,14 @@ const FileManager = () => {
               </div>
             )}
 
-            <Button 
-              variant="primary" 
-              type="submit" 
+            <Button
+              variant="primary"
+              type="submit"
               className="upload-btn"
               disabled={isUploading}
             >
               <FaUpload className="btn-icon" />
-              {isUploading ? 'Uploading...' : 'Upload File'}
+              {isUploading ? "Uploading..." : "Upload File"}
             </Button>
           </Form>
         </div>
@@ -421,24 +443,38 @@ const FileManager = () => {
             <div className="share-alert-content">
               <div className="share-header">
                 <Alert.Heading>
-                  {countdown > 0 ? "🚀 File Shared Successfully!" : "⏰ Link Expired!"}
+                  {countdown > 0
+                    ? "🚀 File Shared Successfully!"
+                    : "⏰ Link Expired!"}
                 </Alert.Heading>
-                <Badge 
-                  bg={countdown > 0 ? "success" : "danger"} 
+                <Badge
+                  bg={countdown > 0 ? "success" : "danger"}
                   className="countdown-badge"
                 >
                   <FaClock className="me-1" />
                   {countdown}s
                 </Badge>
               </div>
-              
+
               {countdown > 0 ? (
                 <>
                   <div className="share-link-container">
                     <code className="share-link">{shareLink}</code>
                   </div>
+
+                  {/* 🔔 One-time use alert */}
+                  <Alert
+                    variant="warning"
+                    className="expired-text"
+                  >
+                    ⚠️ This link is for one-time use only (single share).
+                  </Alert>
+
                   <div className="share-buttons">
-                    <OverlayTrigger placement="top" overlay={<Tooltip>Copy share link</Tooltip>}>
+                    <OverlayTrigger
+                      placement="top"
+                      overlay={<Tooltip>Copy share link</Tooltip>}
+                    >
                       <Button
                         variant="outline-secondary"
                         size="sm"
@@ -450,7 +486,10 @@ const FileManager = () => {
                       </Button>
                     </OverlayTrigger>
 
-                    <OverlayTrigger placement="top" overlay={<Tooltip>Generate QR Code</Tooltip>}>
+                    <OverlayTrigger
+                      placement="top"
+                      overlay={<Tooltip>Generate QR Code</Tooltip>}
+                    >
                       <Button
                         variant="outline-primary"
                         size="sm"
@@ -464,7 +503,9 @@ const FileManager = () => {
                   </div>
                 </>
               ) : (
-                <p className="expired-text">Please click on the share button to create a new link.</p>
+                <p className="expired-text">
+                  Please click on the share button to create a new link.
+                </p>
               )}
             </div>
           </Alert>
@@ -473,8 +514,7 @@ const FileManager = () => {
         {/* Copied Alert */}
         {copiedAlert && (
           <Alert variant="info" className="copied-alert glass-effect">
-            <FaCopy className="me-2" />
-            ✅ Link copied to clipboard!
+            <FaCopy className="me-2" />✅ Link copied to clipboard!
           </Alert>
         )}
 
@@ -502,9 +542,11 @@ const FileManager = () => {
           <div className="file-items">
             {filteredFiles.length > 0 ? (
               filteredFiles.map((file) => (
-                <div 
-                  key={file.id} 
-                  className={`file-item glass-effect ${activeSharedFileId === file.id ? 'sharing-active' : ''}`}
+                <div
+                  key={file.id}
+                  className={`file-item glass-effect ${
+                    activeSharedFileId === file.id ? "sharing-active" : ""
+                  }`}
                 >
                   <div className="file-main-info">
                     <div className="file-icon-type">
@@ -513,7 +555,9 @@ const FileManager = () => {
                     <div className="file-details">
                       <h6 className="file-name">{file.fileName}</h6>
                       <div className="file-meta">
-                        <span className="file-size">{formatSize(file.fileSize)}</span>
+                        <span className="file-size">
+                          {formatSize(file.fileSize)}
+                        </span>
                         <span className="file-date">
                           <FaClock className="me-1" />
                           {formatDate(file.uploade_date)}
@@ -526,9 +570,12 @@ const FileManager = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="file-actions">
-                    <OverlayTrigger placement="top" overlay={<Tooltip>Download file</Tooltip>}>
+                    <OverlayTrigger
+                      placement="top"
+                      overlay={<Tooltip>Download file</Tooltip>}
+                    >
                       <Button
                         variant="outline-success"
                         size="sm"
@@ -539,10 +586,23 @@ const FileManager = () => {
                       </Button>
                     </OverlayTrigger>
 
-                    <OverlayTrigger placement="top" overlay={<Tooltip>{activeSharedFileId === file.id ? "Cannot delete while shared" : "Delete file"}</Tooltip>}>
+                    <OverlayTrigger
+                      placement="top"
+                      overlay={
+                        <Tooltip>
+                          {activeSharedFileId === file.id
+                            ? "Cannot delete while shared"
+                            : "Delete file"}
+                        </Tooltip>
+                      }
+                    >
                       <span>
                         <Button
-                          variant={activeSharedFileId === file.id ? "outline-secondary" : "outline-danger"}
+                          variant={
+                            activeSharedFileId === file.id
+                              ? "outline-secondary"
+                              : "outline-danger"
+                          }
                           size="sm"
                           className="btn-icon"
                           onClick={() => {
@@ -551,26 +611,36 @@ const FileManager = () => {
                           }}
                           disabled={activeSharedFileId === file.id}
                         >
-                          <FaTrash  />
+                          <FaTrash />
                         </Button>
                       </span>
                     </OverlayTrigger>
 
-                    <OverlayTrigger placement="top" overlay={<Tooltip>Share file</Tooltip>}>
+                    <OverlayTrigger
+                      placement="top"
+                      overlay={<Tooltip>Share file</Tooltip>}
+                    >
                       <span>
                         <Button
-                          variant={activeSharedFileId === file.id ? "primary" : "outline-info"}
+                          variant={
+                            activeSharedFileId === file.id
+                              ? "primary"
+                              : "outline-info"
+                          }
                           size="sm"
                           className="btn-icon"
                           onClick={() => handleShare(file.id)}
-                          disabled={shareDisabled && activeSharedFileId !== file.id}
+                          disabled={shareDisabled}
                         >
                           <FaShare className="btn-icon" />
                         </Button>
                       </span>
                     </OverlayTrigger>
 
-                    <OverlayTrigger placement="top" overlay={<Tooltip>File details</Tooltip>}>
+                    <OverlayTrigger
+                      placement="top"
+                      overlay={<Tooltip>File details</Tooltip>}
+                    >
                       <Button
                         variant="outline-primary"
                         size="sm"
@@ -591,7 +661,9 @@ const FileManager = () => {
                 <FaFolderOpen className="no-files-icon" />
                 <p>No files found</p>
                 <small>
-                  {searchTerm ? 'Try adjusting your search terms' : 'Upload your first file to get started'}
+                  {searchTerm
+                    ? "Try adjusting your search terms"
+                    : "Upload your first file to get started"}
                 </small>
               </div>
             )}
@@ -600,23 +672,31 @@ const FileManager = () => {
 
         {/* Logout */}
         <div className="logout-section">
-          <OverlayTrigger placement="top" overlay={<Tooltip>Logout from your account</Tooltip>}>
+          <OverlayTrigger
+            placement="top"
+            overlay={<Tooltip>Logout from your account</Tooltip>}
+          >
             <Button
               variant="outline-danger"
               className="logout-btn"
-              onClick={() => { 
+              onClick={() => {
                 localStorage.removeItem("jwt");
                 window.location.href = "/login";
               }}
             >
-              <FaSignOutAlt className="btn-icon" /> 
+              <FaSignOutAlt className="btn-icon" />
               Logout
             </Button>
           </OverlayTrigger>
         </div>
 
         {/* Modals */}
-        <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} centered className="custom-modal">
+        <Modal
+          show={showDetailsModal}
+          onHide={() => setShowDetailsModal(false)}
+          centered
+          className="custom-modal"
+        >
           <Modal.Header closeButton className="modal-header">
             <Modal.Title>
               <FaInfoCircle className="me-2" />
@@ -632,11 +712,15 @@ const FileManager = () => {
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Size:</span>
-                  <span className="detail-value">{formatSize(selectedFile.fileSize)}</span>
+                  <span className="detail-value">
+                    {formatSize(selectedFile.fileSize)}
+                  </span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Upload Date:</span>
-                  <span className="detail-value">{formatDate(selectedFile.uploade_date)}</span>
+                  <span className="detail-value">
+                    {formatDate(selectedFile.uploade_date)}
+                  </span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Downloads:</span>
@@ -649,7 +733,12 @@ const FileManager = () => {
           </Modal.Body>
         </Modal>
 
-        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered className="custom-modal">
+        <Modal
+          show={showDeleteModal}
+          onHide={() => setShowDeleteModal(false)}
+          centered
+          className="custom-modal"
+        >
           <Modal.Header closeButton className="modal-header">
             <Modal.Title>
               <FaTrash className="me-2" />
@@ -661,8 +750,13 @@ const FileManager = () => {
               <div className="delete-icon">
                 <FaTrash />
               </div>
-              <p>Are you sure you want to delete <strong>"{selectedFile?.fileName}"</strong>?</p>
-              <small className="text-muted">This action cannot be undone.</small>
+              <p>
+                Are you sure you want to delete{" "}
+                <strong>"{selectedFile?.fileName}"</strong>?
+              </p>
+              <small className="text-muted">
+                This action cannot be undone.
+              </small>
             </div>
           </Modal.Body>
           <Modal.Footer className="modal-footer">
@@ -679,7 +773,12 @@ const FileManager = () => {
           </Modal.Footer>
         </Modal>
 
-        <Modal show={showQRModal} onHide={() => setShowQRModal(false)} centered className="custom-modal">
+        <Modal
+          show={showQRModal}
+          onHide={() => setShowQRModal(false)}
+          centered
+          className="custom-modal"
+        >
           <Modal.Header closeButton className="modal-header">
             <Modal.Title>
               <FaQrcode className="me-2" />
@@ -688,7 +787,9 @@ const FileManager = () => {
           </Modal.Header>
           <Modal.Body className="modal-body qr-code-container">
             <div className="qr-content">
-              <p className="qr-description">Scan to download <strong>{selectedFile?.fileName}</strong></p>
+              <p className="qr-description">
+                Scan to download <strong>{selectedFile?.fileName}</strong>
+              </p>
               {shareLink && <QRCodeCanvas value={shareLink} size={200} />}
             </div>
           </Modal.Body>

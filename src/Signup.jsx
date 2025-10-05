@@ -18,7 +18,7 @@ import {
 } from "react-icons/fa";
 import "./Signup.css";
 
-axios.defaults.baseURL = "http://localhost:8080";
+axios.defaults.baseURL = "http://192.168.1.183:8080";
 
 const Signup = () => {
   const [fullname, setUsername] = useState(""); 
