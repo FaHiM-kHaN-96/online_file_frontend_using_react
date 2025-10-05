@@ -40,7 +40,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 axios.defaults.baseURL = "http://192.168.1.183:8080";
 
-const FileManager = () => {
+const FileManager = () => { 
   const [files, setFiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);

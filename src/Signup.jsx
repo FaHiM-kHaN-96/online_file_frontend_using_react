@@ -20,7 +20,7 @@ import "./Signup.css";
 
 axios.defaults.baseURL = "http://192.168.1.183:8080";
 
-const Signup = () => {
+const Signup = () => { 
   const [fullname, setUsername] = useState(""); 
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState("");
@@ -111,7 +111,7 @@ const Signup = () => {
     }
 
     try {
-      // ✅ call JWT backend signup API
+    
       await axios.post(
         "/api/signup",
         { fullname, email, password },

@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children }) => {
       .get("http://192.168.1.183:8080/api/me", {
         headers: {
           Authorization: `Bearer ${token}`,
-        },
+        }, 
       })
       .then((res) => { 
         if (res.status === 200 && res.data.username) {
