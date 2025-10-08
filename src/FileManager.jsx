@@ -38,8 +38,6 @@ import "./FileManager.css";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-axios.defaults.baseURL = "http://192.168.1.183:8080";
-
 const FileManager = () => { 
   const [files, setFiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -224,7 +222,7 @@ const FileManager = () => {
     const file = files.find((f) => f.id === fileId);
     if (!file) return;
 
-    const link = `${axios.defaults.baseURL}/api/files/${fileId}/download`;
+    const link = `/api/files/${fileId}/download`;
 
     try {
       const response = await axios.get(link, {
@@ -269,7 +267,7 @@ const FileManager = () => {
       );
 
       const response = await axios.get(
-        `${axios.defaults.baseURL}/api/share/${fileId}/download`,
+        `/api/share/${fileId}/download`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -283,15 +281,7 @@ const FileManager = () => {
       setActiveSharedFileId(null);
       return;
     }
-    // const response_check = await  axios
-    //       .get(
-    //         `/share_file/stop/timer`,
-    //         {},
-    //         {
-
-    //         }
-    //       )
-
+ 
     countdownInterval.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -312,9 +302,7 @@ const FileManager = () => {
           setActiveSharedFileId(null);
           return 0;
         }
-        // if (response_check) {
-        //   setCountdown(0);
-        // }
+      
         return prev - 1;
       });
     }, 1000);
