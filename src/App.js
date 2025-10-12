@@ -5,6 +5,7 @@ import Login from './Login';
 import Body from './Body';
 import Signup from './Signup';
 import FileManager from './FileManager';
+import VerificationStatus from './VerificationStatus';
 import axios from 'axios';
 axios.defaults.withCredentials = true;
 
@@ -16,7 +17,7 @@ function App() {
         <Route path="/" element={<Body />} />
         <Route path="/login" element={<Login />} />
         <Route path="/Signup" element={<Signup />} />
-      
+        <Route path="/VerificationStatus" element={<VerificationStatus />} />
           <Route
           path="/FileManager"
           element={

@@ -37,6 +37,8 @@ import {
 import "./FileManager.css";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { Link, useNavigate } from "react-router-dom";
+
 
 const FileManager = () => { 
   const [files, setFiles] = useState([]);
@@ -44,6 +46,7 @@ const FileManager = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const navigate = useNavigate(); 
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [shareLink, setShareLink] = useState("");
@@ -94,6 +97,7 @@ const FileManager = () => {
 
   // ------------------- Fetch -------------------
   const fetchFiles = useCallback(async () => {
+   
     if (!token) return;
     try {
       const response = await axios.get("/api/files", {
@@ -101,6 +105,8 @@ const FileManager = () => {
       });
       setFiles(response.data || []);
     } catch (err) {
+      navigate('/VerificationStatus', { replace: true });
+      
       console.error("Failed to fetch files:", err);
     }
   }, [token]);
